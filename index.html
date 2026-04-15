@@ -13,14 +13,14 @@
 
     <style>
         :root {
-            --primary: #4f46e5;
-            --primary-dark: #4338ca;
-            --background: #f1f5f9;
+            --primary: #633448;
+            --primary-dark: #4e2938;
+            --background: #F5F8F9;
             --card-bg: #ffffff;
             --text: #1f2937;
             --border: #e5e7eb;
-            --row-alt: #eef2ff;
-            --row-hover: #e0e7ff;
+            --row-alt: #f3e9ec;
+            --accent: #D9BE82;
         }
 
         body {
@@ -31,7 +31,7 @@
         }
 
         .container {
-            max-width: 1600px; /* Augmentation de la largeur */
+            max-width: 1600px;
             margin: auto;
             padding: 20px;
         }
@@ -39,11 +39,11 @@
         .page-title {
             background: var(--primary);
             color: white;
-            padding: 15px;
+            padding: 16px;
             text-align: center;
             font-size: 24px;
             font-weight: 600;
-            border-radius: 10px;
+            border-radius: 12px;
             margin-bottom: 10px;
         }
 
@@ -62,9 +62,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
-        /* ===================== */
         /* Filters */
-        /* ===================== */
         .filters {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -116,13 +114,10 @@
             text-align: center;
         }
 
-        /* ===================== */
-        /* Table */
-        /* ===================== */
+        /* Desktop Table */
         table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;
         }
 
         thead {
@@ -131,79 +126,77 @@
         }
 
         th, td {
-            padding: 8px;
+            padding: 10px;
             text-align: left;
             border-bottom: 1px solid var(--border);
-            font-size: 13px;
-            overflow-wrap: anywhere; /* Permet la coupure des mots longs */
+            font-size: 14px;
             word-break: break-word;
         }
-
-        /* Largeurs spécifiques pour certaines colonnes */
-        th:nth-child(4), td:nth-child(4) { width: 70px; }   /* Duration */
-        th:nth-child(8), td:nth-child(8) { width: 110px; }  /* Total Price */
-        th:nth-child(9), td:nth-child(9),
-        th:nth-child(10), td:nth-child(10) { width: 110px; } /* Dates */
-        th:nth-child(11), td:nth-child(11) { width: 130px; } /* Action */
 
         tbody tr:nth-child(even) {
             background-color: var(--row-alt);
         }
 
-        tbody tr:hover {
-            background-color: var(--row-hover);
-        }
-
         .btn {
-            background: var(--primary);
-            color: white;
+            background: var(--accent);
+            color: #000;
             border: none;
-            padding: 6px 8px;
+            padding: 6px 10px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 12px;
-            white-space: nowrap;
+            font-weight: 600;
         }
 
-        .btn:hover {
-            background: var(--primary-dark);
+        /* Mobile Cards */
+        .mobile-cards {
+            display: none;
         }
 
-        /* ===================== */
-        /* Mobile Optimization */
-        /* ===================== */
+        .package-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .package-card h3 {
+            margin: 0 0 10px 0;
+            color: var(--primary);
+            font-size: 16px;
+        }
+
+        .package-field {
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .package-field strong {
+            color: var(--primary-dark);
+        }
+
+        /* Responsive Behavior */
         @media (max-width: 768px) {
-            .container {
-                padding: 12px;
+            table {
+                display: none;
             }
 
-            .page-title {
-                font-size: 18px;
-                padding: 12px;
+            .mobile-cards {
+                display: block;
             }
 
             .filters {
                 grid-template-columns: 1fr;
             }
 
-            th, td {
-                font-size: 12px;
-                padding: 6px;
-            }
-
-            .btn {
-                font-size: 11px;
-                padding: 5px 6px;
-            }
-        }
-
-        @media (max-width: 480px) {
             .duration-grid {
                 grid-template-columns: 1fr;
             }
 
             .page-title {
-                font-size: 16px;
+                font-size: 18px;
             }
         }
     </style>
@@ -219,41 +212,31 @@
         <div class="filters">
             <div class="filter-group">
                 <label class="title">Housing Zone</label>
-                <label class="select-all">
-                    <input type="checkbox" id="selectAllHousing"> Tout sélectionner
-                </label>
+                <label class="select-all"><input type="checkbox" id="selectAllHousing"> Tout sélectionner</label>
                 <div id="housingZoneFilter"></div>
             </div>
 
             <div class="filter-group">
                 <label class="title">Category</label>
-                <label class="select-all">
-                    <input type="checkbox" id="selectAllCategory"> Tout sélectionner
-                </label>
+                <label class="select-all"><input type="checkbox" id="selectAllCategory"> Tout sélectionner</label>
                 <div id="categoryFilter"></div>
             </div>
 
             <div class="filter-group">
                 <label class="title">Duration (Days)</label>
-                <label class="select-all">
-                    <input type="checkbox" id="selectAllDuration"> Tout sélectionner
-                </label>
+                <label class="select-all"><input type="checkbox" id="selectAllDuration"> Tout sélectionner</label>
                 <div id="durationFilter" class="duration-grid"></div>
             </div>
 
             <div class="filter-group">
                 <label class="title">Ordre de Voyage</label>
-                <label class="select-all">
-                    <input type="checkbox" id="selectAllOrder"> Tout sélectionner
-                </label>
+                <label class="select-all"><input type="checkbox" id="selectAllOrder"> Tout sélectionner</label>
                 <div id="orderFilter"></div>
             </div>
 
             <div class="filter-group">
                 <label class="title">Disponible</label>
-                <label class="select-all">
-                    <input type="checkbox" id="selectAllDisponible"> Tout sélectionner
-                </label>
+                <label class="select-all"><input type="checkbox" id="selectAllDisponible"> Tout sélectionner</label>
                 <div id="disponibleFilter">
                     <div class="checkbox-item"><input type="checkbox" value="oui"> oui</div>
                     <div class="checkbox-item"><input type="checkbox" value="non"> non</div>
@@ -266,7 +249,7 @@
         Nombre de packages affichés : <span id="resultCount">0</span>
     </div>
 
-    <!-- Table -->
+    <!-- Desktop Table -->
     <div class="card">
         <table id="packagesTable">
             <thead>
@@ -286,6 +269,9 @@
             </thead>
             <tbody></tbody>
         </table>
+
+        <!-- Mobile Cards -->
+        <div id="mobileCards" class="mobile-cards"></div>
     </div>
 </div>
 
@@ -304,12 +290,9 @@ function formatDate(dateStr) {
 }
 
 function getSortedUniqueValues(data, field) {
-    const values = data.map(item => item[field]).filter(v => v !== null && v !== undefined && String(v).trim() !== "");
+    const values = data.map(item => item[field]).filter(v => v);
     const uniqueValues = [...new Set(values)];
-    const isNumeric = uniqueValues.every(v => !isNaN(v));
-    return isNumeric
-        ? uniqueValues.sort((a, b) => Number(a) - Number(b))
-        : uniqueValues.sort((a, b) => String(a).localeCompare(String(b), 'fr-FR', { sensitivity: 'base' }));
+    return uniqueValues.sort((a, b) => String(a).localeCompare(String(b), 'fr-FR'));
 }
 
 function createCheckboxFilter(containerId, field, selectAllId) {
@@ -349,7 +332,9 @@ function initializeFilters() {
 }
 
 function applyFilters() {
-    const getValues = id => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(cb => cb.value);
+    const getValues = id =>
+        Array.from(document.querySelectorAll(`#${id} input:checked`))
+            .map(cb => cb.value);
 
     const housing = getValues('housingZoneFilter');
     const category = getValues('categoryFilter');
@@ -366,6 +351,7 @@ function applyFilters() {
     );
 
     renderTable(filtered);
+    renderCards(filtered);
     document.getElementById('resultCount').textContent = filtered.length;
 }
 
@@ -387,12 +373,40 @@ function renderTable(data) {
             <td>${formatDate(pkg.startDate)}</td>
             <td>${formatDate(pkg.endDate)}</td>
             <td>
-                <button class="btn" onclick="navigator.clipboard.writeText('${pkg['Lien summary']}')">
+                <button class="btn"
+                    onclick="navigator.clipboard.writeText('${pkg['Lien summary']}')">
                     Copier le lien
                 </button>
             </td>
         `;
         tbody.appendChild(row);
+    });
+}
+
+function renderCards(data) {
+    const container = document.getElementById('mobileCards');
+    container.innerHTML = '';
+
+    data.forEach(pkg => {
+        const card = document.createElement('div');
+        card.className = 'package-card';
+        card.innerHTML = `
+            <h3>${pkg.nameEn || ''}</h3>
+            <div class="package-field"><strong>Provider:</strong> ${pkg.serviceProviderNameEn || ''}</div>
+            <div class="package-field"><strong>Category:</strong> ${pkg.packageCategoryName || ''}</div>
+            <div class="package-field"><strong>Duration:</strong> ${pkg.packageDurationDays || ''} jours</div>
+            <div class="package-field"><strong>Makkah Hotel 1:</strong> ${pkg.Makkah_Hotel_1 || ''}</div>
+            <div class="package-field"><strong>Makkah Hotel 2:</strong> ${pkg.Makkah_Hotel_2 || ''}</div>
+            <div class="package-field"><strong>Madinah Hotel:</strong> ${pkg.Madinah_Hotel_1 || ''}</div>
+            <div class="package-field"><strong>Total Price:</strong> ${formatPrice(pkg.totalPrice)}</div>
+            <div class="package-field"><strong>Start:</strong> ${formatDate(pkg.startDate)}</div>
+            <div class="package-field"><strong>End:</strong> ${formatDate(pkg.endDate)}</div>
+            <button class="btn"
+                onclick="navigator.clipboard.writeText('${pkg['Lien summary']}')">
+                Copier le lien
+            </button>
+        `;
+        container.appendChild(card);
     });
 }
 
@@ -406,19 +420,23 @@ async function loadExcel() {
 
         const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
         const sheetName = workbook.SheetNames[0];
-        allData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
+        allData = XLSX.utils.sheet_to_json(
+            workbook.Sheets[sheetName],
+            { defval: "" }
+        );
 
         initializeFilters();
         applyFilters();
 
         document.getElementById("lastUpdate").textContent = lastModified
-            ? "Dernière mise à jour : " + new Date(lastModified).toLocaleString('fr-FR')
+            ? "Dernière mise à jour : " +
+              new Date(lastModified).toLocaleString('fr-FR')
             : "Données mises à jour récemment";
 
     } catch (error) {
         document.getElementById("lastUpdate").textContent =
             "Erreur lors du chargement des données.";
-        console.error("Erreur de chargement :", error);
+        console.error(error);
     }
 }
 
