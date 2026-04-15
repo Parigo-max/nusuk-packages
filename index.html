@@ -8,7 +8,7 @@
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
-    <!-- SheetJS (version stable) -->
+    <!-- SheetJS -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -31,7 +31,7 @@
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px; /* Augmentation de la largeur */
             margin: auto;
             padding: 20px;
         }
@@ -122,7 +122,6 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            border-radius: 10px;
             table-layout: fixed;
         }
 
@@ -132,13 +131,20 @@
         }
 
         th, td {
-            padding: 10px;
+            padding: 8px;
             text-align: left;
             border-bottom: 1px solid var(--border);
-            font-size: 14px;
-            white-space: normal;
+            font-size: 13px;
+            overflow-wrap: anywhere; /* Permet la coupure des mots longs */
             word-break: break-word;
         }
+
+        /* Largeurs spécifiques pour certaines colonnes */
+        th:nth-child(4), td:nth-child(4) { width: 70px; }   /* Duration */
+        th:nth-child(8), td:nth-child(8) { width: 110px; }  /* Total Price */
+        th:nth-child(9), td:nth-child(9),
+        th:nth-child(10), td:nth-child(10) { width: 110px; } /* Dates */
+        th:nth-child(11), td:nth-child(11) { width: 130px; } /* Action */
 
         tbody tr:nth-child(even) {
             background-color: var(--row-alt);
@@ -152,10 +158,11 @@
             background: var(--primary);
             color: white;
             border: none;
-            padding: 6px 10px;
+            padding: 6px 8px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 12px;
+            white-space: nowrap;
         }
 
         .btn:hover {
@@ -179,18 +186,14 @@
                 grid-template-columns: 1fr;
             }
 
-            .filter-group {
-                max-height: none;
-            }
-
             th, td {
                 font-size: 12px;
-                padding: 8px;
+                padding: 6px;
             }
 
             .btn {
-                font-size: 12px;
-                padding: 6px 8px;
+                font-size: 11px;
+                padding: 5px 6px;
             }
         }
 
@@ -252,12 +255,8 @@
                     <input type="checkbox" id="selectAllDisponible"> Tout sélectionner
                 </label>
                 <div id="disponibleFilter">
-                    <div class="checkbox-item">
-                        <input type="checkbox" value="oui"> oui
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" value="non"> non
-                    </div>
+                    <div class="checkbox-item"><input type="checkbox" value="oui"> oui</div>
+                    <div class="checkbox-item"><input type="checkbox" value="non"> non</div>
                 </div>
             </div>
         </div>
@@ -294,35 +293,25 @@
 const EXCEL_URL = "https://raw.githubusercontent.com/parigo-max/nusuk-packages/main/result.xlsx";
 let allData = [];
 
-/* Format price */
 function formatPrice(value) {
     const number = Number(value);
     return isNaN(number) ? "" : number.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
 }
 
-/* Format date */
 function formatDate(dateStr) {
     const date = new Date(dateStr);
     return isNaN(date) ? dateStr : date.toLocaleDateString('fr-FR');
 }
 
-/* Get sorted unique values */
 function getSortedUniqueValues(data, field) {
-    const values = data
-        .map(item => item[field])
-        .filter(v => v !== null && v !== undefined && String(v).trim() !== "");
-
+    const values = data.map(item => item[field]).filter(v => v !== null && v !== undefined && String(v).trim() !== "");
     const uniqueValues = [...new Set(values)];
     const isNumeric = uniqueValues.every(v => !isNaN(v));
-
     return isNumeric
         ? uniqueValues.sort((a, b) => Number(a) - Number(b))
-        : uniqueValues.sort((a, b) =>
-            String(a).localeCompare(String(b), 'fr-FR', { sensitivity: 'base' })
-        );
+        : uniqueValues.sort((a, b) => String(a).localeCompare(String(b), 'fr-FR', { sensitivity: 'base' }));
 }
 
-/* Create filters */
 function createCheckboxFilter(containerId, field, selectAllId) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
@@ -343,7 +332,6 @@ function createCheckboxFilter(containerId, field, selectAllId) {
     container.querySelectorAll('input').forEach(cb => cb.addEventListener('change', applyFilters));
 }
 
-/* Initialize filters */
 function initializeFilters() {
     createCheckboxFilter('housingZoneFilter', 'housingZoneNameEn', 'selectAllHousing');
     createCheckboxFilter('categoryFilter', 'packageCategoryName', 'selectAllCategory');
@@ -360,11 +348,8 @@ function initializeFilters() {
     });
 }
 
-/* Apply filters */
 function applyFilters() {
-    const getValues = id =>
-        Array.from(document.querySelectorAll(`#${id} input:checked`))
-            .map(cb => cb.value);
+    const getValues = id => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(cb => cb.value);
 
     const housing = getValues('housingZoneFilter');
     const category = getValues('categoryFilter');
@@ -384,7 +369,6 @@ function applyFilters() {
     document.getElementById('resultCount').textContent = filtered.length;
 }
 
-/* Render table */
 function renderTable(data) {
     const tbody = document.querySelector('#packagesTable tbody');
     tbody.innerHTML = '';
@@ -403,8 +387,7 @@ function renderTable(data) {
             <td>${formatDate(pkg.startDate)}</td>
             <td>${formatDate(pkg.endDate)}</td>
             <td>
-                <button class="btn"
-                    onclick="navigator.clipboard.writeText('${pkg['Lien summary']}')">
+                <button class="btn" onclick="navigator.clipboard.writeText('${pkg['Lien summary']}')">
                     Copier le lien
                 </button>
             </td>
@@ -413,7 +396,6 @@ function renderTable(data) {
     });
 }
 
-/* Load Excel automatically */
 async function loadExcel() {
     try {
         const response = await fetch(EXCEL_URL);
@@ -424,17 +406,13 @@ async function loadExcel() {
 
         const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
         const sheetName = workbook.SheetNames[0];
-        allData = XLSX.utils.sheet_to_json(
-            workbook.Sheets[sheetName],
-            { defval: "" }
-        );
+        allData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
 
         initializeFilters();
         applyFilters();
 
         document.getElementById("lastUpdate").textContent = lastModified
-            ? "Dernière mise à jour : " +
-              new Date(lastModified).toLocaleString('fr-FR')
+            ? "Dernière mise à jour : " + new Date(lastModified).toLocaleString('fr-FR')
             : "Données mises à jour récemment";
 
     } catch (error) {
