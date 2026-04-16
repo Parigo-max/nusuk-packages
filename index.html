@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nusuk Packages Explorer</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+/* ✅ STRICTEMENT IDENTIQUE à ton fichier → aucune modif */
+:root {
+    --primary: #633448;
+    --primary-dark: #4e2938;
+    --background: #F5F8F9;
+    --card-bg: #ffffff;
+    --text: #1f2937;
+    --border: #e5e7eb;
+    --row-alt: #f3e9ec;
+    --accent: #D9BE82;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+}
+
+.container {
+    max-width: 1600px;
+    margin: auto;
+    padding: 20px;
+}
+
+.page-title {
+    background: var(--primary);
+    color: white;
+    padding: 16px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.update-info {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* Filters */
+.filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+}
+
+.filter-group {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+    background: #fafafa;
+}
+
+.filter-group label.title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.checkbox-item input {
+    margin-right: 8px;
+    transform: scale(1.1);
+}
+
+.select-all {
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.duration-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px 10px;
+}
+
+.result-count {
+    font-weight: 600;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background: var(--primary);
+    color: white;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    word-break: break-word;
+}
+
+tbody tr:nth-child(even) {
+    background-color: var(--row-alt);
+}
+
+.btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Mobile */
+.mobile-cards { display: none; }
+
+.package-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.package-card h3 {
+    margin: 0 0 10px 0;
+    color: var(--primary);
+    font-size: 16px;
+}
+
+.package-field {
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.package-field strong {
+    color: var(--primary-dark);
+}
+
+@media (max-width: 768px) {
+    table { display: none; }
+    .mobile-cards { display: block; }
+    .filters { grid-template-columns: 1fr; }
+    .duration-grid { grid-template-columns: 1fr; }
+    .page-title { font-size: 18px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="page-title">Nusuk Packages Explorer</div>
+    <div class="update-info" id="lastUpdate">Chargement des données...</div>
+
+    <div class="card">
+        <div class="filters">
+            <div class="filter-group">
+                <label class="title">Housing Zone</label>
+                <label class="select-all"><input type="checkbox" id="selectAllHousing"> Tout sélectionner</label>
+                <div id="housingZoneFilter"></div>
+            </div>
+
+            <div class="filter-group">
+                <label class="title">Category</label>
+                <label class="select-all"><input type="checkbox" id="selectAllCategory"> Tout sélectionner</label>
+                <div id="categoryFilter"></div>
+            </div>
+
+            <div class="filter-group">
+                <label class="title">Duration (Days)</label>
+                <label class="select-all"><input type="checkbox" id="selectAllDuration"> Tout sélectionner</label>
+                <div id="durationFilter" class="duration-grid"></div>
+            </div>
+
+            <div class="filter-group">
+                <label class="title">Ordre de Voyage</label>
+                <label class="select-all"><input type="checkbox" id="selectAllOrder"> Tout sélectionner</label>
+                <div id="orderFilter"></div>
+            </div>
+
+            <div class="filter-group">
+                <label class="title">Disponible</label>
+                <label class="select-all"><input type="checkbox" id="selectAllDisponible"> Tout sélectionner</label>
+                <div id="disponibleFilter">
+                    <div class="checkbox-item"><input type="checkbox" value="oui"> oui</div>
+                    <div class="checkbox-item"><input type="checkbox" value="non"> non</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-count">
+        Nombre de packages affichés : <span id="resultCount">0</span>
+    </div>
+
+    <div class="card">
+        <table id="packagesTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Service Provider</th>
+                    <th>Category</th>
+                    <th>Duration</th>
+                    <th>Makkah Hotel 1</th>
+                    <th>Makkah Hotel 2</th>
+                    <th>Madinah Hotel</th>
+                    <th>Total Price</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div id="mobileCards" class="mobile-cards"></div>
+    </div>
+</div>
+
+<script>
+const EXCEL_URL = "https://raw.githubusercontent.com/parigo-max/nusuk-packages/main/result.xlsx";
+const GITHUB_API = "https://api.github.com/repos/parigo-max/nusuk-packages/commits?path=result.xlsx&page=1&per_page=1";
+
+let allData = [];
+let exchangeRate = 0.25;
+
+/* ===== Taux de change ===== */
+async function fetchRate() {
+    try {
+        const res = await fetch("https://api.exchangerate.host/latest?base=SAR&symbols=EUR");
+        const data = await res.json();
+        if (data?.rates?.EUR) exchangeRate = data.rates.EUR;
+    } catch {}
+}
+
+/* ===== Date GitHub ===== */
+async function fetchUpdateDate() {
+    try {
+        const res = await fetch(GITHUB_API);
+        const data = await res.json();
+        const date = data[0]?.commit?.committer?.date;
+        document.getElementById("lastUpdate").textContent =
+            "Dernière mise à jour des données : " +
+            new Date(date || Date.now()).toLocaleString("fr-FR");
+    } catch {
+        document.getElementById("lastUpdate").textContent =
+            "Dernière mise à jour : " +
+            new Date().toLocaleString("fr-FR");
+    }
+}
+
+/* ===== Format prix ===== */
+function formatPrice(value) {
+    const n = Number(value);
+    if (isNaN(n)) return "";
+
+    const sar = n.toLocaleString("fr-FR", { maximumFractionDigits: 0 });
+    const eur = (n * exchangeRate).toLocaleString("fr-FR", { maximumFractionDigits: 0 });
+
+    return `${sar} SAR (${eur} €)`;
+}
+
+/* ===== Le reste du code est STRICTEMENT IDENTIQUE ===== */
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return isNaN(date) ? dateStr : date.toLocaleDateString('fr-FR');
+}
+
+function getSortedUniqueValues(data, field) {
+    const values = data.map(item => item[field]).filter(v => v);
+    const uniqueValues = [...new Set(values)];
+    return uniqueValues.sort((a, b) => String(a).localeCompare(String(b), 'fr-FR'));
+}
+
+function createCheckboxFilter(containerId, field, selectAllId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    const values = getSortedUniqueValues(allData, field);
+
+    values.forEach(value => {
+        const div = document.createElement('div');
+        div.className = 'checkbox-item';
+        div.innerHTML = `<input type="checkbox" value="${value}"> ${value}`;
+        container.appendChild(div);
+    });
+
+    document.getElementById(selectAllId).addEventListener('change', function () {
+        container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = this.checked);
+        applyFilters();
+    });
+
+    container.querySelectorAll('input').forEach(cb => cb.addEventListener('change', applyFilters));
+}
+
+function initializeFilters() {
+    createCheckboxFilter('housingZoneFilter', 'housingZoneNameEn', 'selectAllHousing');
+    createCheckboxFilter('categoryFilter', 'packageCategoryName', 'selectAllCategory');
+    createCheckboxFilter('durationFilter', 'packageDurationDays', 'selectAllDuration');
+    createCheckboxFilter('orderFilter', 'Ordre_Voyage', 'selectAllOrder');
+
+    document.querySelectorAll('#disponibleFilter input')
+        .forEach(cb => cb.addEventListener('change', applyFilters));
+
+    document.getElementById('selectAllDisponible').addEventListener('change', function () {
+        document.querySelectorAll('#disponibleFilter input')
+            .forEach(cb => cb.checked = this.checked);
+        applyFilters();
+    });
+}
+
+function applyFilters() {
+    const getValues = id =>
+        Array.from(document.querySelectorAll(`#${id} input:checked`))
+            .map(cb => cb.value);
+
+    const housing = getValues('housingZoneFilter');
+    const category = getValues('categoryFilter');
+    const duration = getValues('durationFilter');
+    const order = getValues('orderFilter');
+    const dispo = getValues('disponibleFilter');
+
+    const filtered = allData.filter(item =>
+        (housing.length === 0 || housing.includes(String(item.housingZoneNameEn))) &&
+        (category.length === 0 || category.includes(String(item.packageCategoryName))) &&
+        (duration.length === 0 || duration.includes(String(item.packageDurationDays))) &&
+        (order.length === 0 || order.includes(String(item.Ordre_Voyage))) &&
+        (dispo.length === 0 || dispo.includes(String(item.Disponible).toLowerCase()))
+    );
+
+    renderTable(filtered);
+    renderCards(filtered);
+    document.getElementById('resultCount').textContent = filtered.length;
+}
+
+function renderTable(data) {
+    const tbody = document.querySelector('#packagesTable tbody');
+    tbody.innerHTML = '';
+
+    data.forEach(pkg => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${pkg.nameEn || ''}</td>
+            <td>${pkg.serviceProviderNameEn || ''}</td>
+            <td>${pkg.packageCategoryName || ''}</td>
+            <td>${pkg.packageDurationDays || ''}</td>
+            <td>${pkg.Makkah_Hotel_1 || ''}</td>
+            <td>${pkg.Makkah_Hotel_2 || ''}</td>
+            <td>${pkg.Madinah_Hotel_1 || ''}</td>
+            <td>${formatPrice(pkg.totalPrice)}</td>
+            <td>${formatDate(pkg.startDate)}</td>
+            <td>${formatDate(pkg.endDate)}</td>
+            <td>
+                <button class="btn"
+                    onclick="navigator.clipboard.writeText('${pkg['Lien summary']}')">
+                    Copier le lien
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function renderCards(data) {
+    const container = document.getElementById('mobileCards');
+    container.innerHTML = '';
+
+    data.forEach(pkg => {
+        const card = document.createElement('div');
+        card.className = 'package-card';
+        card.innerHTML = `
+            <h3>${pkg.nameEn || ''}</h3>
+            <div class="package-field"><strong>Provider:</strong> ${pkg.serviceProviderNameEn || ''}</div>
+            <div class="package-field"><strong>Category:</strong> ${pkg.packageCategoryName || ''}</div>
+            <div class="package-field"><strong>Duration:</strong> ${pkg.packageDurationDays || ''} jours</div>
+            <div class="package-field"><strong>Makkah Hotel 1:</strong> ${pkg.Makkah_Hotel_1 || ''}</div>
+            <div class="package-field"><strong>Makkah Hotel 2:</strong> ${pkg.Makkah_Hotel_2 || ''}</div>
+            <div class="package-field"><strong>Madinah Hotel:</strong> ${pkg.Madinah_Hotel_1 || ''}</div>
+            <div class="package-field"><strong>Total Price:</strong> ${formatPrice(pkg.totalPrice)}</div>
+            <div class="package-field"><strong>Start:</strong> ${formatDate(pkg.startDate)}</div>
+            <div class="package-field"><strong>End:</strong> ${formatDate(pkg.endDate)}</div>
+            <button class="btn"
+                onclick="navigator.clipboard.writeText('${pkg['Lien summary']}')">
+                Copier le lien
+            </button>
+        `;
+        container.appendChild(card);
+    });
+}
+
+async function loadExcel() {
+    const response = await fetch(EXCEL_URL);
+    const buffer = await response.arrayBuffer();
+
+    const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    allData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
+
+    initializeFilters();
+    applyFilters();
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+    await fetchRate();
+    await loadExcel();
+    await fetchUpdateDate();
+});
+</script>
+
+</body>
+</html>
