@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nusuk Packages Explorer</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+:root{
+  --primary:#633448;
+  --accent:#D9BE82;
+  --bg:#F5F8F9;
+  --card:#fff;
+  --text:#1f2937;
+  --border:#e5e7eb;
+}
+
+body{font-family:Inter;margin:0;background:var(--bg);color:var(--text)}
+.container{max-width:1500px;margin:auto;padding:20px}
+
+.page-title{background:var(--primary);color:#fff;padding:14px;text-align:center;border-radius:10px}
+.update-info{text-align:center;margin:10px 0;font-size:13px}
+
+.card{background:var(--card);padding:16px;border-radius:10px;margin-bottom:16px}
+
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.filter-group{border:1px solid var(--border);border-radius:8px;padding:8px;max-height:220px;overflow:auto;background:#fafafa}
+.filter-group label{display:block;font-size:13px}
+.select-all{font-weight:600;margin-bottom:6px}
+
+.result-count{text-align:center;font-weight:600;margin-bottom:10px}
+
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px;font-size:13px;border-bottom:1px solid #ddd;text-align:left}
+thead{background:var(--primary);color:#fff}
+
+.btn{background:var(--accent);border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-weight:600}
+
+.favorite{cursor:pointer;font-size:18px}
+.favorite.active{color:gold}
+
+.nowrap{white-space:nowrap}
+
+.mobile{display:none}
+
+@media(max-width:768px){
+  table{display:none;}
+  .mobile{display:block;}
+  .filters{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="page-title">Nusuk Packages Explorer</div>
+<div class="update-info" id="update"></div>
+
+<div class="top-actions">
+<button class="btn" id="toggleFavorites">Afficher favoris uniquement</button>
+<button class="btn" onclick="exportFavorites()">Exporter favoris</button>
+</div>
+
+<div class="card">
+<div class="filters">
+
+<div class="filter-group">
+<b>Zone</b>
+<label class="select-all"><input type="checkbox" id="selectAllZone"> Tout sélectionner</label>
+<div id="zoneFilter"></div>
+</div>
+
+<div class="filter-group">
+<b>Category</b>
+<label class="select-all"><input type="checkbox" id="selectAllCategory"> Tout sélectionner</label>
+<div id="categoryFilter"></div>
+</div>
+
+<div class="filter-group">
+<b>Duration</b>
+<label class="select-all"><input type="checkbox" id="selectAllDuration"> Tout sélectionner</label>
+<div id="durationFilter"></div>
+</div>
+
+<div class="filter-group">
+<b>Ordre</b>
+<label class="select-all"><input type="checkbox" id="selectAllOrder"> Tout sélectionner</label>
+<div id="orderFilter"></div>
+</div>
+
+<div class="filter-group">
+<b>Disponible</b>
+<label class="select-all"><input type="checkbox" id="selectAllDisponible"> Tout sélectionner</label>
+<div id="disponibleFilter">
+<label><input type="checkbox" value="oui"> oui</label>
+<label><input type="checkbox" value="non"> non</label>
+</div>
+</div>
+
+</div>
+</div>
+
+<div class="result-count">
+Résultats : <span id="count">0</span>
+</div>
+
+<div class="card">
+
+<table id="table">
+<thead>
+<tr>
+<th>⭐</th>
+<th>Name</th>
+<th>Category</th>
+<th>Duration</th>
+<th>Makkah Hotel 1</th>
+<th>Makkah Hotel 2</th>
+<th>Madinah Hotel</th>
+<th>Price</th>
+<th>Dates</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<div id="mobile" class="mobile"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const EXCEL_URL="https://raw.githubusercontent.com/parigo-max/nusuk-packages/main/result.xlsx";
+
+let allData=[];
+let showFavoritesOnly=false;
+let rate=0;
+
+/* FAVORIS */
+function getFavorites(){
+ return JSON.parse(localStorage.getItem("favorites")||"[]");
+}
+
+function toggleFavorite(id){
+ let favs=getFavorites();
+ favs=favs.includes(id)?favs.filter(x=>x!==id):[...favs,id];
+ localStorage.setItem("favorites",JSON.stringify(favs));
+ applyFilters();
+}
+
+/* EXPORT */
+function exportFavorites(){
+ const favs=getFavorites();
+ const data=allData.filter(p=>favs.includes(p.uuid));
+ if(data.length===0){alert("Aucun favori");return;}
+ const ws=XLSX.utils.json_to_sheet(data);
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,"Favoris");
+ XLSX.writeFile(wb,"favoris.xlsx");
+}
+
+/* DATE */
+async function fetchUpdate(){
+ try{
+  const r=await fetch("https://api.github.com/repos/parigo-max/nusuk-packages/commits?path=result.xlsx&per_page=1");
+  const j=await r.json();
+  const date=j[0].commit.committer.date;
+  document.getElementById("update").textContent="Dernière mise à jour : "+new Date(date).toLocaleString('fr-FR');
+ }catch{
+  document.getElementById("update").textContent="Mise à jour récente";
+ }
+}
+
+/* FILTERS */
+function getValues(id){
+ return Array.from(document.querySelectorAll(`#${id} input:checked`))
+  .map(cb=>cb.value);
+}
+
+function createFilter(id,field){
+ const el=document.getElementById(id);
+ const vals=[...new Set(allData.map(x=>x[field]).filter(Boolean))].sort();
+ vals.forEach(v=>{
+  el.innerHTML+=`<label><input type="checkbox" value="${v}"> ${v}</label>`;
+ });
+}
+
+/* SYNC SELECT ALL */
+function syncSelectAll(filterId, selectAllId){
+ const all = document.querySelectorAll(`#${filterId} input`);
+ const checked = document.querySelectorAll(`#${filterId} input:checked`);
+ document.getElementById(selectAllId).checked = (all.length === checked.length);
+}
+
+function initializeFilters(){
+
+ createFilter('zoneFilter','housingZoneNameEn');
+ createFilter('categoryFilter','packageCategoryName');
+ createFilter('durationFilter','packageDurationDays');
+ createFilter('orderFilter','Ordre_Voyage');
+
+ document.getElementById('selectAllZone').addEventListener('change',function(){
+  document.querySelectorAll('#zoneFilter input').forEach(cb=>cb.checked=this.checked);
+  applyFilters();
+ });
+
+ document.getElementById('selectAllCategory').addEventListener('change',function(){
+  document.querySelectorAll('#categoryFilter input').forEach(cb=>cb.checked=this.checked);
+  applyFilters();
+ });
+
+ document.getElementById('selectAllDuration').addEventListener('change',function(){
+  document.querySelectorAll('#durationFilter input').forEach(cb=>cb.checked=this.checked);
+  applyFilters();
+ });
+
+ document.getElementById('selectAllOrder').addEventListener('change',function(){
+  document.querySelectorAll('#orderFilter input').forEach(cb=>cb.checked=this.checked);
+  applyFilters();
+ });
+
+ document.getElementById('selectAllDisponible').addEventListener('change',function(){
+  document.querySelectorAll('#disponibleFilter input').forEach(cb=>cb.checked=this.checked);
+  applyFilters();
+ });
+
+ document.querySelectorAll('.filter-group input')
+  .forEach(cb=>cb.addEventListener('change',function(){
+
+    applyFilters();
+
+    syncSelectAll('zoneFilter','selectAllZone');
+    syncSelectAll('categoryFilter','selectAllCategory');
+    syncSelectAll('durationFilter','selectAllDuration');
+    syncSelectAll('orderFilter','selectAllOrder');
+    syncSelectAll('disponibleFilter','selectAllDisponible');
+
+  }));
+}
+
+/* APPLY */
+function applyFilters(){
+
+ const zone=getValues('zoneFilter');
+ const cat=getValues('categoryFilter');
+ const dur=getValues('durationFilter');
+ const ord=getValues('orderFilter');
+ const dispo=getValues('disponibleFilter');
+
+ let data=allData.filter(p=>
+  (zone.length===0||zone.includes(String(p.housingZoneNameEn))) &&
+  (cat.length===0||cat.includes(String(p.packageCategoryName))) &&
+  (dur.length===0||dur.includes(String(p.packageDurationDays))) &&
+  (ord.length===0||ord.includes(String(p.Ordre_Voyage))) &&
+  (dispo.length===0||dispo.includes(String(p.Disponible)))
+ );
+
+ if(showFavoritesOnly){
+  const favs=getFavorites();
+  data=data.filter(p=>favs.includes(p.uuid));
+ }
+
+ // ✅ TRI NOM
+ data.sort((a,b)=>(a.nameEn||"").localeCompare(b.nameEn||""));
+
+ render(data);
+ document.getElementById('count').textContent=data.length;
+}
+
+/* RENDER */
+function render(data){
+
+ const favs=getFavorites();
+ const tbody=document.querySelector("#table tbody");
+ const mobile=document.getElementById("mobile");
+
+ tbody.innerHTML="";
+ mobile.innerHTML="";
+
+ data.forEach(p=>{
+
+ const isFav=favs.includes(p.uuid);
+
+ tbody.innerHTML+=`
+<tr>
+<td><span class="favorite ${isFav?'active':''}" onclick="toggleFavorite('${p.uuid}')">★</span></td>
+<td>${p.nameEn||""}</td>
+<td>${p.packageCategoryName||""}</td>
+<td>${p.packageDurationDays||""}</td>
+<td>${p.Makkah_Hotel_1||""}</td>
+<td>${p.Makkah_Hotel_2||""}</td>
+<td>${p.Madinah_Hotel_1||""}</td>
+<td>
+${Number(p.totalPrice).toLocaleString('fr-FR')} SAR<br>
+<small>${rate ? (p.totalPrice * rate).toLocaleString('fr-FR',{maximumFractionDigits:0})+" €":""}</small>
+</td>
+<td class="nowrap">${formatDate(p.startDate)} → ${formatDate(p.endDate)}</td>
+<td><button class="btn" onclick="navigator.clipboard.writeText('${p['Lien summary']}')">Copier</button></td>
+</tr>`;
+
+ mobile.innerHTML+=`
+<div class="card-item">
+<span class="favorite ${isFav?'active':''}" onclick="toggleFavorite('${p.uuid}')">★</span>
+<b>${p.nameEn||""}</b><br>
+${p.packageCategoryName||""} • ${p.packageDurationDays||""} jours<br>
+
+<div><b>Makkah 1:</b> ${p.Makkah_Hotel_1||""}</div>
+<div><b>Makkah 2:</b> ${p.Makkah_Hotel_2||""}</div>
+<div><b>Madinah:</b> ${p.Madinah_Hotel_1||""}</div>
+
+<div class="price">
+${Number(p.totalPrice).toLocaleString('fr-FR')} SAR<br>
+<small>${rate ? (p.totalPrice * rate).toLocaleString('fr-FR',{maximumFractionDigits:0})+" €":""}</small>
+</div>
+
+<div>${formatDate(p.startDate)} → ${formatDate(p.endDate)}</div>
+
+<button class="btn" onclick="navigator.clipboard.writeText('${p['Lien summary']}')">
+Copier lien
+</button>
+</div>`;
+ });
+}
+
+function formatDate(d){
+ const dt=new Date(d);
+ return isNaN(dt)?"":dt.toLocaleDateString('fr-FR');
+}
+
+/* LOAD */
+async function load(){
+
+ await fetchUpdate();
+
+ try{
+  const fx = await fetch("https://open.er-api.com/v6/latest/SAR");
+  const fxData = await fx.json();
+  rate = fxData.rates.EUR || 0;
+ }catch{
+  rate = 0;
+ }
+
+ const r=await fetch(EXCEL_URL);
+ const b=await r.arrayBuffer();
+ const wb=XLSX.read(new Uint8Array(b),{type:'array'});
+ allData=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+
+ initializeFilters();
+ applyFilters();
+}
+
+document.getElementById("toggleFavorites").onclick=()=>{
+ showFavoritesOnly=!showFavoritesOnly;
+ applyFilters();
+};
+
+load();
+
+</script>
+
+</body>
+</html>
